@@ -10,6 +10,7 @@ import com.alibaba.sdk.android.oss.callback.OSSProgressCallback;
 import com.alibaba.sdk.android.oss.common.auth.OSSCredentialProvider;
 import com.alibaba.sdk.android.oss.common.auth.OSSCustomSignerCredentialProvider;
 import com.alibaba.sdk.android.oss.common.auth.OSSPlainTextAKSKCredentialProvider;
+import com.alibaba.sdk.android.oss.common.utils.IOUtils;
 import com.alibaba.sdk.android.oss.internal.OSSAsyncTask;
 import com.alibaba.sdk.android.oss.model.ObjectMetadata;
 import com.alibaba.sdk.android.oss.model.GetObjectRequest;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.String;
 
+import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 
@@ -104,12 +106,27 @@ public class aliyunossModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void uploadObjectAsync(String bucketName, String sourceFile, String ossFile, String updateDate, final Promise promise) {
+    public void uploadObjectAsync(String bucketName, String sourceFile, String ossFile, String updateDate, final Promise promise) throws IOException {
 // 构造上传请求
-        PutObjectRequest put = new PutObjectRequest(bucketName, ossFile, sourceFile);
+
+
+        boolean isImage = sourceFile.startsWith("content://media");
+
+        PutObjectRequest put;
+
+        if (isImage) {
+            Uri fileUri = Uri.parse(sourceFile);
+            InputStream fileIs = getReactApplicationContext().getApplicationContext().getContentResolver().openInputStream(fileUri);
+            byte[] bytes = IOUtils.readStreamAsBytesArray(fileIs);
+            put = new PutObjectRequest(bucketName, ossFile, bytes);
+        } else {
+            put = new PutObjectRequest(bucketName, ossFile, sourceFile);
+        }
+
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setHeader("Date",updateDate);
+//        metadata.setHeader("Date",updateDate);
         put.setMetadata(metadata);
+
 
         // 异步上传时可以设置进度回调
         put.setProgressCallback(new OSSProgressCallback<PutObjectRequest>() {
