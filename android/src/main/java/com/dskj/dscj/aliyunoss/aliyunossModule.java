@@ -105,6 +105,62 @@ public class aliyunossModule extends ReactContextBaseJavaModule {
         Log.d("AliyunOSS", "OSS initWithSigner ok!");
     }
 
+
+    @ReactMethod
+    public void uploadBase64Data(String bucketName, String base64data, String ossFile, final Promise promise) throws IOException {
+// 构造上传请求
+
+        byte[] bytes = Base64.decode(base64data, Base64.DEFAULT);
+        PutObjectRequest put = new PutObjectRequest(bucketName, ossFile, bytes);
+
+
+        ObjectMetadata metadata = new ObjectMetadata();
+        put.setMetadata(metadata);
+
+        // 异步上传时可以设置进度回调
+        put.setProgressCallback(new OSSProgressCallback<PutObjectRequest>() {
+            @Override
+            public void onProgress(PutObjectRequest request, long currentSize, long totalSize) {
+                Log.d("PutObject", "currentSize: " + currentSize + " totalSize: " + totalSize);
+                String str_currentSize = Long.toString(currentSize);
+                String str_totalSize = Long.toString(totalSize);
+                WritableMap onProgressValueData = Arguments.createMap();
+                onProgressValueData.putString("currentSize", str_currentSize);
+                onProgressValueData.putString("totalSize", str_totalSize);
+                getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("uploadProgress", onProgressValueData);
+            }
+        });
+
+        OSSAsyncTask task = oss.asyncPutObject(put, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+            @Override
+            public void onSuccess(PutObjectRequest request, PutObjectResult result) {
+                Log.d("PutObject", "UploadSuccess");
+                Log.d("ETag", result.getETag());
+                Log.d("RequestId", result.getRequestId());
+                promise.resolve("UploadSuccess");
+            }
+
+            @Override
+            public void onFailure(PutObjectRequest request, ClientException clientExcepion, ServiceException serviceException) {
+                // 请求异常
+                if (clientExcepion != null) {
+                    // 本地异常如网络异常等
+                    clientExcepion.printStackTrace();
+                }
+                if (serviceException != null) {
+                    // 服务异常
+                    Log.e("ErrorCode", serviceException.getErrorCode());
+                    Log.e("RequestId", serviceException.getRequestId());
+                    Log.e("HostId", serviceException.getHostId());
+                    Log.e("RawMessage", serviceException.getRawMessage());
+                }
+                promise.reject("UploadFaile", "message:123123");
+            }
+        });
+        Log.d("AliyunOSS", "OSS uploadObjectAsync ok!");
+    }
+
     @ReactMethod
     public void uploadObjectAsync(String bucketName, String sourceFile, String ossFile, String updateDate, final Promise promise) throws IOException {
 // 构造上传请求
