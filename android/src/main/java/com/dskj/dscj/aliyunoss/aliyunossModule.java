@@ -40,7 +40,7 @@ import java.lang.String;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
-
+import android.util.Base64;
 /**
  * Created by lesonli on 2016/10/31.
  */
