@@ -164,5 +164,49 @@ RCT_REMAP_METHOD(uploadObjectAsync, bucketName:(NSString *)BucketName
 }
 
 
+RCT_REMAP_METHOD(uploadBase64Data, bucketName:(NSString *)BucketName
+                 data:(NSString *)data
+                 OssFile:(NSString *)OssFile
+                 resolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject) {
+    
+    OSSPutObjectRequest * put = [OSSPutObjectRequest new];
+    // required fields
+    put.bucketName = BucketName;
+    put.objectKey = OssFile;
+    put.uploadingData = [[NSData alloc] initWithBase64EncodedString:data options:0];
+    //NSString * docDir = [self getDocumentDirectory];
+    //put.uploadingFileURL = [NSURL fileURLWithPath:[docDir stringByAppendingPathComponent:@"file1m"]];
+
+    NSLog(@"uploadingFileURL: %@", put.uploadingFileURL);
+    // optional fields
+    put.uploadProgress = ^(int64_t bytesSent, int64_t totalByteSent, int64_t totalBytesExpectedToSend) {
+        NSLog(@"%lld, %lld, %lld", bytesSent, totalByteSent, totalBytesExpectedToSend);
+        [self sendEventWithName: @"uploadProgress" body:@{@"everySentSize":[NSString stringWithFormat:@"%lld",bytesSent],
+                                                          @"currentSize": [NSString stringWithFormat:@"%lld",totalByteSent],
+                                                          @"totalSize": [NSString stringWithFormat:@"%lld",totalBytesExpectedToSend]}];
+        
+    };
+    //put.contentType = @"";
+    //put.contentMd5 = @"";
+    //put.contentEncoding = @"";
+    //put.contentDisposition = @"";
+    put.objectMeta = [NSMutableDictionary dictionaryWithObjectsAndKeys: UpdateDate, @"Date", nil];
+    
+    OSSTask * putTask = [client putObject:put];
+    
+    [putTask continueWithBlock:^id(OSSTask *task) {
+        NSLog(@"objectKey: %@", put.objectKey);
+        if (!task.error) {
+            NSLog(@"upload object success!");
+            resolve(@YES);
+        } else {
+            NSLog(@"upload object failed, error: %@" , task.error);
+            reject(@"-1", @"not respond this method", nil);
+        }
+        return nil;
+    }];
+}
+
 
 @end
