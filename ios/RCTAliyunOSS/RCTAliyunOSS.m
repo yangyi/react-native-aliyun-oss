@@ -191,7 +191,7 @@ RCT_REMAP_METHOD(uploadBase64Data, bucketName:(NSString *)BucketName
     //put.contentMd5 = @"";
     //put.contentEncoding = @"";
     //put.contentDisposition = @"";
-    put.objectMeta = [NSMutableDictionary dictionaryWithObjectsAndKeys: UpdateDate, @"Date", nil];
+    // put.objectMeta = [NSMutableDictionary dictionaryWithObjectsAndKeys: UpdateDate, @"Date", nil];
     
     OSSTask * putTask = [client putObject:put];
     
